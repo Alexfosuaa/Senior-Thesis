@@ -1,0 +1,9 @@
+[submodule "external_src/segmentation/openscene"]
+	path = external_src/segmentation/openscene
+	url = https://github.com/pengsongyou/openscene.git
+[submodule "external_src/segmentation/pla"]
+	path = external_src/segmentation/pla
+	url = https://github.com/CVMI-Lab/PLA.git
+[submodule "external_src/segmentation/mosaic3d"]
+	path = external_src/segmentation/mosaic3d
+	url = https://github.com/NVlabs/Mosaic3D.git
