@@ -9,6 +9,7 @@ def _cpu_clip_load(name, device='cpu', jit=False):
     return _orig_clip_load(name, device='cpu', jit=jit)
 clip.load = _cpu_clip_load
 
+sys.path.insert(0, os.path.join('src', 'segmentation'))
 sys.path.insert(0, os.path.join('external_src', 'segmentation'))
 sys.path.insert(0, os.path.join('external_src', 'segmentation', 'openscene'))
 sys.path.insert(0, os.path.join('external_src', 'segmentation', 'openscene', 'models'))
@@ -18,7 +19,7 @@ from util.util import extract_text_feature
 from dataset.label_constants import SCANNET_LABELS_20
 import MinkowskiEngine as ME
 
-CONFIG_PATH = 'external_src/segmentation/openscene/config/scannet/ours_openseg.yaml'
+CONFIG_PATH = 'external_src/segmentation/openscene/config/scannet/ours_openseg_pretrained.yaml'
 SCENE_PTH = '/home/cpsc4900_afo6/scratch_cpsc4900/cpsc4900_afo6/openscene/scannet_3d/val/scene0011_00_vh_clean_2.pth'
 
 device = torch.device('cpu')
@@ -29,6 +30,8 @@ model = OpenSceneModel(
     model_restore_path=None,
     device=device,
 )
+# model_path comes from the pretrained config.
+print('resolved model_path:', model.config.model_path)
 
 coords, colors, labels = torch.load(SCENE_PTH, map_location='cpu')
 coords = np.asarray(coords)
@@ -58,7 +61,7 @@ preds_per_point = torch.max(logits_per_point, 1)[1]
 print('logits_per_point shape:', logits_per_point.shape)
 assert logits_per_point.shape[0] == n_points
 
-# --- Sanity-check actual VALUES, not just shape ---
+# Sanity-check actual VALUES, not just shape 
 print('\n--- sample output check ---')
 print('class order:', list(SCANNET_LABELS_20))
 print('logits for point 0:', logits_per_point[0].tolist())
@@ -71,3 +74,21 @@ print('number of distinct predicted classes across all points:', len(torch.uniqu
 probs_point0 = torch.softmax(logits_per_point[0], dim=0)
 print('softmax probs for point 0:', probs_point0.tolist())
 print('sum of probs for point 0 (should be ~1.0):', probs_point0.sum().item())
+
+
+# Locate the global extreme logits to check whether they're isolated outliers
+
+flat_idx_min = torch.argmin(logits_per_point)
+
+flat_idx_max = torch.argmax(logits_per_point)
+
+point_min, class_min = divmod(flat_idx_min.item(), logits_per_point.shape[1])
+
+point_max, class_max = divmod(flat_idx_max.item(), logits_per_point.shape[1])
+
+print(f'global min logit at point {point_min}, class {class_min}: {logits_per_point[point_min, class_min].item()}')
+
+print(f'global max logit at point {point_max}, class {class_max}: {logits_per_point[point_max, class_max].item()}')
+
+print('99th percentile |logit|:', torch.quantile(logits_per_point.abs().flatten(), 0.99).item())
+

@@ -29,7 +29,7 @@ class Mosaic3DModel(object):
 	]
 
 	DATASET_TO_DATA_OVERRIDE = {
-		'scannet': 'sc',
+		'scannet': 'sc+ar+sc++',
 	}
 
 	def __init__(self,
